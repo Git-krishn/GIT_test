@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TailorFit: Your Personalized Clothing Experience</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-4">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const initialData = {
+      chest: '', waist: '', hips: '', shoulder: '', sleeve: '', height: '', weight: '',
+      clothing: 'Shirt', fabric: 'Premium Cotton', style: 'Slim Fit'
+    };
+
+    function App() {
+      const [formData, setFormData] = React.useState(initialData);
+      const [errors, setErrors] = React.useState({});
+      const [step, setStep] = React.useState('form');
+      const [submitting, setSubmitting] = React.useState(false);
+
+      const handleChange = e => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+      };
+
+      const validate = () => {
+        const newErr = {};
+        const numFields = ['chest','waist','hips','shoulder','sleeve','height','weight'];
+        numFields.forEach(f => {
+          const val = parseFloat(formData[f]);
+          if (!val) newErr[f] = 'Required';
+        });
+        const chestVal = parseFloat(formData.chest);
+        if (chestVal && (chestVal < 30 || chestVal > 60)) newErr.chest = 'Chest must be 30-60 inches';
+        return newErr;
+      };
+
+      const handleSubmit = e => {
+        e.preventDefault();
+        const v = validate();
+        if (Object.keys(v).length) { setErrors(v); return; }
+        setErrors({});
+        setStep('confirm');
+      };
+
+      const handleConfirm = () => {
+        setSubmitting(true);
+        axios.post('http://localhost:3001/submit', formData)
+          .then(() => {
+            alert('Order placed!');
+            setFormData(initialData);
+            setStep('form');
+          })
+          .catch(err => {
+            alert('Error submitting: ' + err);
+          })
+          .finally(() => setSubmitting(false));
+      };
+
+      if (step === 'confirm') {
+        return (
+          <div className="max-w-lg mx-auto bg-white p-6 rounded shadow">
+            <h1 className="text-2xl font-bold mb-4">Confirm Your Order</h1>
+            <pre className="mb-4 bg-gray-100 p-2 rounded">
+{JSON.stringify(formData, null, 2)}
+            </pre>
+            <div className="flex space-x-2">
+              <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setStep('form')}>Edit</button>
+              <button className="px-4 py-2 bg-blue-500 text-white rounded" onClick={handleConfirm} disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Confirm Order'}
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="max-w-lg mx-auto bg-white p-6 rounded shadow">
+          <h1 className="text-2xl font-bold mb-4">TailorFit: Your Personalized Clothing Experience</h1>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {['chest','waist','hips','shoulder','sleeve','height','weight'].map(f => (
+              <div key={f}>
+                <label className="block capitalize">{f} {f==='chest'?'(in inches)':''}</label>
+                <input type="number" step="any" name={f} value={formData[f]} onChange={handleChange}
+                  className="w-full border p-2" />
+                {errors[f] && <p className="text-red-500 text-sm">{errors[f]}</p>}
+              </div>
+            ))}
+            <div>
+              <label className="block">Clothing Type</label>
+              <select name="clothing" value={formData.clothing} onChange={handleChange} className="w-full border p-2">
+                <option>Shirt</option>
+                <option>Trouser</option>
+                <option>Kurta</option>
+                <option>Suit</option>
+              </select>
+            </div>
+            <div>
+              <label className="block">Fabric Quality</label>
+              <select name="fabric" value={formData.fabric} onChange={handleChange} className="w-full border p-2">
+                <option>Premium Cotton</option>
+                <option>Linen</option>
+                <option>Blend</option>
+                <option>Silk</option>
+              </select>
+            </div>
+            <div>
+              <label className="block">Style Options</label>
+              <select name="style" value={formData.style} onChange={handleChange} className="w-full border p-2">
+                <option>Slim Fit</option>
+                <option>Regular Fit</option>
+                <option>Loose Fit</option>
+              </select>
+            </div>
+            <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded">Submit Measurements &amp; Place Order</button>
+          </form>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
